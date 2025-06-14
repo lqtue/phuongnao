@@ -417,18 +417,39 @@
         }
 
         // --- EVENT LISTENERS ---
-        document.getElementById('userPhoto').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return;
+document.getElementById('userPhoto').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = event => {
-                userPhoto = event.target.result;
-                const preview = document.getElementById('photoPreview');
-                preview.innerHTML = `<img src="${userPhoto}" alt="Preview" class="w-full h-full object-cover">`;
-            };
-            reader.readAsDataURL(file);
-        });
+    const reader = new FileReader();
+    reader.onload = event => {
+        const img = new Image();
+        img.onload = () => {
+            const maxDim = 400;
+            let { width, height } = img;
+            // Calculate resized dimensions
+            if (width > maxDim || height > maxDim) {
+                const ratio = Math.min(maxDim / width, maxDim / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+            // Draw to canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress to JPEG
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            // Store and preview
+            userPhoto = compressedDataUrl;
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = `<img src="${compressedDataUrl}" alt="Preview" class="w-full h-full object-cover">`;
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
 
         document.getElementById('userName').addEventListener('input', e => {
             userName = e.target.value.trim();
