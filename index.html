@@ -219,7 +219,7 @@
         // Load ward data from GitHub
         async function loadWardData() {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/lqtue/HCMCWards/main/Data.geojson');
+                const response = await fetch('https://raw.githubusercontent.com/lqtue/phuongnao/main/Data.geojson');
                 wardData = await response.json();
                 return wardData;
             } catch (error) {
