@@ -364,6 +364,12 @@
             try{
                 // Wait until all web‑fonts are loaded
                 await document.fonts.ready;
+                // Wait for all images inside the card to load
+                const imgs = node.querySelectorAll('img');
+                await Promise.all(Array.from(imgs).map(img =>
+                    img.complete ? Promise.resolve() :
+                    new Promise(resolve => { img.onload = img.onerror = resolve; })
+                ));
                 const dataUrl = await htmlToImage.toPng(node, { pixelRatio: 3, cacheBust: true });
                 const link = document.createElement('a');
                 link.download = `thecudan-${(userName||'user').replace(/\s+/g,'-')}.png`;
