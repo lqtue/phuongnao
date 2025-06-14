@@ -8,8 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts for typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap&subset=vietnamese" rel="stylesheet">
-    <!-- QRious for QR code generation -->
-    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <!-- QRious for QR code generation (removed) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
     <style>
         /* Set the default font for the entire page */
@@ -254,7 +253,7 @@
             } else {
                 currentWardInfo = feature;
                 resultDiv.innerHTML = createWardCardHTML(feature, userName, userPhoto); // Pass feature here
-                renderCardQR(feature.properties);
+                // renderCardQR(feature.properties); // QRious removed, no longer needed
             }
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -312,10 +311,10 @@
 
                         <!-- Bottom: QR + URL -->
                         <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2">
-                            <div id="cardQR" class="qr-code-placeholder"></div>
-                            <p class="text-xs sm:text-sm text-indigo-200 font-medium break-words text-center">
-                                lqtue.github.io/phuongnao
-                            </p>
+                          <img src="https://raw.githubusercontent.com/lqtue/phuongnao/main/download.png" alt="QR code" class="qr-code-placeholder object-cover">
+                          <p class="text-xs sm:text-sm text-indigo-200 font-medium break-words text-center">
+                              lqtue.github.io/phuongnao
+                          </p>
                         </div>
 
                     </div><!-- /.card-pattern -->
@@ -343,14 +342,7 @@
             `;
         }
 
-        function renderCardQR(props){
-            const holder = document.getElementById('cardQR');
-            if(!holder) return;
-            const url = 'https://lqtue.github.io/phuongnao/';  // base URL only
-            const qr  = new QRious({ value: url, size: 60 });
-            holder.innerHTML = '';
-            holder.appendChild(qr.canvas);
-        }
+        // QRious renderCardQR removed (no longer needed)
 
         /* ---------- DOWNLOAD CARD AS PNG ---------- */
         async function downloadCard(){
