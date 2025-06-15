@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,8 +85,41 @@
         <div id="result" class="mt-8"></div>
     </div>
     
+    <!-- Credits & Contact -->
+    <div class="mt-8 text-center text-gray-400 text-xs space-y-1">
+        <p>Nguồn dữ liệu: Thông tin công khai trên báo chí</p>
+        <p>
+            <a href="https://github.com/lqtue" class="underline hover:text-gray-200">Github</a> | 
+            <a href="https://forms.gle/QvFAvevgM8TvWTBr9" class="underline hover:text-gray-200">Tải dữ liệu & Liên hệ</a> |
+            <!-- Nút ủng hộ đã được thêm vào đây -->
+            <button id="donateBtn" class="underline hover:text-white font-bold text-green-400">❤️ Ủng hộ tác giả</button>
+        </p>
+    </div>
+
+    <!-- Modal Ủng hộ -->
+    <div id="donateModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50" style="display:none;">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm text-center relative">
+            <!-- Nút đóng -->
+            <button id="closeDonateModal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 transition">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+            
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Cảm ơn bạn đã ghé thăm!</h3>
+            <p class="text-gray-600 mb-4">Nếu thấy ứng dụng này hữu ích, bạn có thể ủng hộ tác giả một ly cà phê. Sự ủng hộ của bạn là nguồn động viên lớn lao!</p>
+            
+            <!-- QUAN TRỌNG: Thay 'my-qr-code.png' bằng tên tệp hình ảnh QR của bạn -->
+            <img src="my-qr-code.png" alt="Mã QR ủng hộ" class="mx-auto w-52 h-52 rounded-lg border-2 border-gray-200" onerror="this.alt='Không tìm thấy ảnh QR'; this.src='https://placehold.co/208x208/e0e0e0/757575?text=QR+Code';">
+            
+            <p class="mt-4 text-sm font-medium text-gray-500">Quét mã QR ở trên bằng ứng dụng Ngân hàng hoặc Ví điện tử.</p>
+            
+            <div class="mt-2 text-xs text-gray-400">
+                 <p>Xin chân thành cảm ơn!</p>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- GLOBAL STATE ---
+        // --- TRẠNG THÁI TOÀN CỤC ---
         let wardData = null;
         let dataLoaded = false;
         let currentWardInfo = null;
@@ -95,7 +128,7 @@
         let map = null;
         let rankedPopulation = [], rankedArea = [], rankedDensity = [];
 
-        // --- PARSERS & DATA LOADERS ---
+        // --- HÀM TẢI VÀ XỬ LÝ DỮ LIỆU ---
         function parseTSV(tsvText) {
             const lines = tsvText.trim().split(/\r?\n/);
             const headers = lines[0].split('\t').map(h => h.trim());
@@ -166,7 +199,7 @@
             return found ? found.rank : 'N/A';
         }
 
-        // --- UI & RESULT RENDERING ---
+        // --- HIỂN THỊ GIAO DIỆN & KẾT QUẢ ---
         function setLoading(isLoading, message = 'Đang tìm kiếm thông tin...') {
             const loadingDiv = document.getElementById('loading');
             document.getElementById('result').innerHTML = '';
@@ -192,7 +225,6 @@
             document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
-        // REVISED: createInfoPanelHTML now has the button container outside the main panel
         function createInfoPanelHTML() {
              return `
                 <div>
@@ -321,11 +353,11 @@
             }
         }
         
-        // --- Map Initialization ---
+        // --- KHỞI TẠO BẢN ĐỒ ---
         function initializeMap(selectedFeature, userLocation = null) {
             if (map) { map.remove(); map = null; }
             map = L.map('map', { attributionControl: false });
-            L.tileLayer('https://mt.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+            L.tileLayer('https://mt.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
             
             const selectedId = selectedFeature.properties.STT;
 
@@ -355,7 +387,7 @@
             }
         }
         
-        // --- ACTION HANDLERS ---
+        // --- HÀM XỬ LÝ SỰ KIỆN ---
         async function handleLocationSearch() {
             if (!dataLoaded) await loadWardData();
             if (!navigator.geolocation) { showError('Trình duyệt không hỗ trợ Geolocation.'); return; }
@@ -439,7 +471,7 @@
             return inside;
         }
 
-        // --- EVENT LISTENERS ---
+        // --- LẮNG NGHE SỰ KIỆN ---
         document.getElementById('searchBtn').addEventListener('click', handleNameSearch);
         document.getElementById('wardSearchInput').addEventListener('keyup', (event) => { if (event.key === 'Enter') handleNameSearch(); });
         document.getElementById('locationBtn').addEventListener('click', handleLocationSearch);
@@ -474,14 +506,28 @@
             reader.readAsDataURL(file);
         });
 
-        // --- Init ---
+        // --- LOGIC CHO MODAL ỦNG HỘ ---
+        const donateBtn = document.getElementById('donateBtn');
+        const donateModal = document.getElementById('donateModal');
+        const closeDonateModalBtn = document.getElementById('closeDonateModal');
+
+        donateBtn.addEventListener('click', () => {
+            donateModal.style.display = 'flex';
+        });
+
+        closeDonateModalBtn.addEventListener('click', () => {
+            donateModal.style.display = 'none';
+        });
+
+        // Đóng modal khi nhấp vào vùng nền mờ bên ngoài
+        donateModal.addEventListener('click', (event) => {
+            if (event.target === donateModal) {
+                donateModal.style.display = 'none';
+            }
+        });
+
+        // --- KHỞI ĐỘNG ---
         loadWardData();
     </script>
 </body>
-
-<!-- Credits & Contact -->
-<div class="mt-8 text-center text-gray-400 text-xs space-y-1">
-  <p>Nguồn dữ liệu: Thông tin công khai trên báo chí</p>
-  <p><a href="https://github.com/lqtue" class="underline hover:text-gray-200">Github</a> | <a href="https://forms.gle/QvFAvevgM8TvWTBr9" class="underline hover:text-gray-200">Tải dữ liệu & Liên hệ</a></p>
-</div>
 </html>
