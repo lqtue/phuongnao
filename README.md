@@ -55,4 +55,4 @@
 
 ## Ủng hộ người phát triển
 
-Mời mình một ly cafe ☕:
+Mời mình một ly cafe ☕: <img src="https://raw.githubusercontent.com/lqtue/phuongnao/main/qr-code.jpg" alt="Mã QR ủng hộ" class="mx-auto w-52 h-52 rounded-lg border-2 border-gray-200" onerror="this.alt='Không tìm thấy ảnh QR'; this.src='https://placehold.co/208x208/e0e0e0/757575?text=QR+Code';">
