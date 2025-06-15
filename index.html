@@ -4,196 +4,430 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cư dân phương nào?</title>
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for typography -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap&subset=vietnamese" rel="stylesheet">
-    <!-- QRious for QR code generation (removed) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <!-- LeafletJS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
     <style>
-        /* Set the default font for the entire page */
-        body {
-            font-family: 'Inter', 'Noto Sans', 'Roboto', ui-sans-serif, system-ui, sans-serif;
+        body { font-family: 'Inter', 'Noto Sans', 'Roboto', ui-sans-serif, system-ui, sans-serif; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin 2s linear infinite; }
+        #map { height: 350px; z-index: 1; background-color: #f0f0f0; }
+        .map-popup .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            color: #333;
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.2);
         }
-        /* Custom class for the subtle background pattern on the card */
-        .card-pattern::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 50%, rgba(0,0,0,0) 51%, rgba(0,0,0,0) 100%),
-                              radial-gradient(circle at 90% 80%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 50%, rgba(0,0,0,0) 51%, rgba(0,0,0,0) 100%);
-            background-size: 100px 100px;
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        /* Custom animation for the loading spinner */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-            animation: spin 2s linear infinite;
-        }
-        .qr-code-placeholder {
-          box-sizing: border-box;
-          width: 54px;
-          height: 54px;
-          padding: 2px;               /* small white border */
-          background: #fff;
-          border-radius: 2px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-        /* Ensure QR canvas fills its placeholder */
-        #cardQR canvas {
-          width: 100%;
-          height: 100%;
-          display: block;
-        }
+        .map-popup .leaflet-popup-content { margin: 10px; font-size: 12px; font-weight: bold; }
+        .map-popup .leaflet-popup-tip { background: rgba(255, 255, 255, 0.8); }
     </style>
 </head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-C511NNLV4Q"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-C511NNLV4Q');
-</script>
     
-<body class="bg-gray-900 text-white flex flex-col items-center justify-start min-h-screen p-4">
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center justify-start min-h-screen p-4">
 
-    <div class="w-full max-w-2xl mx-auto">
-        <div class="bg-gray-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
-            <!-- Header Section -->
-            <div class="text-center mb-8">
-                <h1 class="text-xl sm:text-xl font-extrabold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Tạo Thẻ cư dân TP HCM mới</h1>
-                <p class="text-gray-400 mt-2 text-sm sm:text-base">Nhập tên và ảnh, sau đó nhấn nút để tạo Thẻ cư dân của siêu đô thị TP HCM!</p>
-            </div>
+    <div class="w-full max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">Bạn là dân phường/xã nào sau sáp nhập</h1>
+            <p class="text-gray-500 mt-2 text-md">Sử dụng vị trí hoặc tìm kiếm theo tên để khám phá thông tin hành chính mới tại TP.HCM!</p>
+            <p class="text-xs text-gray-400 mt-2">⚠️ Chúng tôi không thu thập dữ liệu cá nhân; thông tin chỉ mang tính tham khảo.</p>
+        </div>
 
-            <!-- Input Form -->
+        <div class="bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200">
+            <!-- Inputs -->
             <div class="space-y-6">
-                <!-- User Name Input -->
+                <!-- Primary Actions -->
                 <div>
-                    <label for="userName" class="block mb-2 text-sm font-medium text-gray-300">Tên của bạn</label>
-                    <input type="text" id="userName" maxlength="25" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-gray-900/50 border-2 border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition duration-300 outline-none">
-                </div>
-
-                <!-- Photo Upload -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-300">Ảnh chân dung</label>
-                    <div class="flex items-center space-x-4">
-                        <div id="photoPreview" class="w-16 h-16 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden border-2 border-gray-600">
-                           <!-- Preview image will be inserted here -->
-                        </div>
-                        <label for="userPhoto" class="w-full text-center cursor-pointer bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-300">
-                            Tải ảnh lên
-                        </label>
-                        <input type="file" id="userPhoto" accept="image/*" class="hidden">
+                    <label for="wardSearchInput" class="block mb-2 text-sm font-medium text-gray-600">Tìm theo tên Phường/Xã (cũ hoặc mới)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="wardSearchInput" placeholder="Ví dụ: Bến Nghé hoặc Phường 1 Quận 3" class="w-full bg-gray-50 border-2 border-gray-300 rounded-lg p-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300 outline-none">
+                        <button id="searchBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-lg shadow-lg transition duration-300"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
                 </div>
+                <div class="relative flex items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-400 text-sm">hoặc</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+                <button id="locationBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg transform hover:scale-105 transition duration-300"><i class="fa-solid fa-location-crosshairs mr-2"></i> Dùng vị trí hiện tại của tôi</button>
+                
+                <!-- Divider -->
+                <div class="border-t border-gray-200 pt-6 mt-6"></div>
 
-                <!-- Action Button -->
-                <button id="locationBtn" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg transform hover:scale-105 transition duration-300">
-                    📍 Tạo Thẻ
-                </button>
+                <!-- Secondary Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div>
+                        <label for="userName" class="block mb-2 text-sm font-medium text-gray-600">Tên của bạn (Tùy chọn)</label>
+                        <input type="text" id="userName" maxlength="25" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-gray-50 border-2 border-gray-300 rounded-lg p-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300 outline-none">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-600">Ảnh chân dung (Tùy chọn)</label>
+                        <div class="flex items-center space-x-4">
+                            <div id="photoPreview" class="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden border-2 border-gray-300"></div>
+                            <label for="userPhoto" class="w-full text-center cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition duration-300 h-full flex items-center justify-center">Tải ảnh</label>
+                            <input type="file" id="userPhoto" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Loading Indicator -->
-        <div id="loading" class="text-center mt-8" style="display:none;">
-            <div class="inline-flex items-center space-x-3">
-                <div class="w-6 h-6 border-4 border-t-transparent border-purple-400 rounded-full animate-spin-slow"></div>
-                <span class="text-lg text-gray-300">Đang tìm kiếm thông tin...</span>
-            </div>
-        </div>
-
-        <!-- Result Display Area -->
-        <div id="result" class="mt-8">
-            <!-- The generated card will be inserted here -->
-        </div>
+        <!-- Loading / Results -->
+        <div id="loading" class="text-center mt-8" style="display:none;"></div>
+        <div id="result" class="mt-8"></div>
     </div>
-
-    <!-- Credits & Contact -->
-    <div class="mt-8 text-center text-gray-400 text-xs space-y-1">
-      <p>Nguồn dữ liệu: Thông tin công khai trên báo chí | Nguồn bản đồ: OpenStreetMap</p>
-      <p><a href="https://github.com/lqtue" class="underline hover:text-gray-200">Github</a> | <a href="https://forms.gle/QvFAvevgM8TvWTBr9" class="underline hover:text-gray-200">Tải Dữ liệu/Hợp tác</a></p>
-    </div>
-
-    <!-- Data Privacy Modal -->
-    <div id="dataPrivacyModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-700">
-            <h3 class="text-lg font-bold text-white mb-4">Thông báo</h3>
-            <p class="text-gray-300 mb-6">
-                Ứng dụng này <b>không thu thập, lưu trữ, hoặc gửi bất kỳ dữ liệu cá nhân nào</b> (tên, ảnh, hoặc vị trí).
-                </br>
-                </br>
-                Thông tin chỉ mang tính chất tham khảo.
-            </p>
-            <div class="flex justify-end space-x-3">
-                <button id="cancelPrivacyModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium transition duration-200">Hủy</button>
-                <button id="confirmPrivacyModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white font-medium transition duration-200">Đồng ý & Tạo Thẻ</button>
-            </div>
-        </div>
-    </div>
-
+    
     <script>
         // --- GLOBAL STATE ---
         let wardData = null;
         let dataLoaded = false;
         let currentWardInfo = null;
         let userName = '';
-        let userPhoto = null; // This will store the Base64 URL of the user's photo
+        let userPhoto = null;
+        let map = null;
+        let rankedPopulation = [], rankedArea = [], rankedDensity = [];
 
-        // Global variables to store ranked data
-        let rankedPopulation = [];
-        let rankedArea = [];
-        let rankedDensity = [];
-
-        // --- DATA LOADING ---
-        async function loadWardData() {
-            try {
-                // Fetch the GeoJSON data for Ho Chi Minh City's wards
-                const res = await fetch('https://raw.githubusercontent.com/lqtue/phuongnao/main/HCMC_v3.geojson');
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                wardData = await res.json();
-                dataLoaded = true;
-                precomputeRankings(); // Call this after data is loaded
-            } catch (e) {
-                console.error("Failed to load ward data:", e);
-                showResult('❌ Lỗi tải dữ liệu. Vui lòng kiểm tra kết nối và thử lại.', true);
+        // --- PARSERS & DATA LOADERS ---
+        function parseTSV(tsvText) {
+            const lines = tsvText.trim().split(/\r?\n/);
+            const headers = lines[0].split('\t').map(h => h.trim());
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = lines[i].split('\t');
+                const rowObject = {};
+                for (let j = 0; j < headers.length; j++) {
+                    const header = headers[j];
+                    let value = (values[j] || '').trim();
+                    const numValue = parseFloat(value);
+                    rowObject[header] = !isNaN(numValue) && value !== '' ? numValue : value;
+                }
+                rows.push(rowObject);
             }
+            return rows;
         }
 
         function precomputeRankings() {
             if (!wardData || !wardData.features) return;
-
-            // Create a copy of features for sorting
             const featuresCopy = [...wardData.features];
-
-            // Sort by Population (descending)
-            rankedPopulation = featuresCopy
-                .filter(f => typeof f.properties['Dân số (người)'] === 'number') // Ensure it's a number
-                .sort((a, b) => b.properties['Dân số (người)'] - a.properties['Dân số (người)'])
-                .map((f, i) => ({ ...f.properties, rank: i + 1 }));
-
-            // Sort by Area (descending)
-            rankedArea = featuresCopy
-                .filter(f => typeof f.properties['Diện tích (km2)'] === 'number') // Ensure it's a number
-                .sort((a, b) => b.properties['Diện tích (km2)'] - a.properties['Diện tích (km2)'])
-                .map((f, i) => ({ ...f.properties, rank: i + 1 }));
-
-            // Sort by Density (descending)
-            rankedDensity = featuresCopy
-                .filter(f => typeof f.properties['Mật độ (người/km2)'] === 'number') // Ensure it's a number
-                .sort((a, b) => b.properties['Mật độ (người/km2)'] - a.properties['Mật độ (người/km2)'])
-                .map((f, i) => ({ ...f.properties, rank: i + 1 }));
+            rankedPopulation = featuresCopy.filter(f => typeof f.properties['Dân số (người)'] === 'number').sort((a, b) => b.properties['Dân số (người)'] - a.properties['Dân số (người)']).map((f, i) => ({ ...f.properties, rank: i + 1 }));
+            rankedArea = featuresCopy.filter(f => typeof f.properties['Diện tích (km2)'] === 'number').sort((a, b) => b.properties['Diện tích (km2)'] - a.properties['Diện tích (km2)']).map((f, i) => ({ ...f.properties, rank: i + 1 }));
+            rankedDensity = featuresCopy.filter(f => typeof f.properties['Mật độ (người/km2)'] === 'number').sort((a, b) => b.properties['Mật độ (người/km2)'] - a.properties['Mật độ (người/km2)']).map((f, i) => ({ ...f.properties, rank: i + 1 }));
         }
 
-        // --- GEOMETRY & LOCATION LOGIC ---
+        async function loadWardData() {
+            try {
+                setLoading(true, 'Đang tải dữ liệu bản đồ...');
+                const geoJsonPath = 'https://raw.githubusercontent.com/lqtue/phuongnao/main/HCMC_v4.geojson';
+                const dataPath = 'https://raw.githubusercontent.com/lqtue/phuongnao/main/HCMC_data.tsv';
+                const [geoRes, dataRes] = await Promise.all([fetch(geoJsonPath), fetch(dataPath)]);
+                if (!geoRes.ok) throw new Error(`Lỗi tải GeoJSON!`);
+                if (!dataRes.ok) throw new Error(`Lỗi tải dữ liệu!`);
+                const geojsonData = await geoRes.json();
+                const dataText = await dataRes.text();
+                const tsvData = parseTSV(dataText);
+                const dataMap = new Map();
+                tsvData.forEach(row => { if (row['STT']) { dataMap.set(row['STT'], row); } });
+                geojsonData.features.forEach(feature => {
+                    const sttKey = feature.properties['STT'];
+                    if (sttKey && dataMap.has(sttKey)) { Object.assign(feature.properties, dataMap.get(sttKey)); }
+                });
+                wardData = geojsonData;
+                dataLoaded = true;
+                precomputeRankings();
+                setLoading(false);
+            } catch (e) {
+                setLoading(false);
+                showError(`Lỗi tải dữ liệu: ${e.message}`);
+            }
+        }
+
+        function normalizeString(str) {
+            if (!str) return '';
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/p\.|phường/g, "phuong").replace(/q\.|quận/g, "quan").replace(/tp\.|thành phố/g, "thanh pho").replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+        }
+        
+        function getWardName(properties) {
+            const potentialKeys = ['Tên', 'name', 'ward_name', 'full_name', 'ten_phuong', 'label', 'title'];
+            for (const key of potentialKeys) { if (properties[key]) return properties[key]; }
+            return 'N/A';
+        }
+
+        function getWardRank(wardName, rankingsArray) {
+            const found = rankingsArray.find(item => getWardName(item) === wardName);
+            return found ? found.rank : 'N/A';
+        }
+
+        // --- UI & RESULT RENDERING ---
+        function setLoading(isLoading, message = 'Đang tìm kiếm thông tin...') {
+            const loadingDiv = document.getElementById('loading');
+            document.getElementById('result').innerHTML = '';
+            if (isLoading) {
+                loadingDiv.style.display = 'block';
+                loadingDiv.innerHTML = `<div class="inline-flex items-center space-x-3"><div class="w-6 h-6 border-4 border-t-transparent border-purple-500 rounded-full animate-spin-slow"></div><span class="text-lg text-gray-600">${message}</span></div>`;
+            } else {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            setLoading(false);
+            document.getElementById('result').innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 p-4 rounded-lg text-center">${message}</div>`;
+        }
+
+        function showResult(feature, userLocation = null) {
+            currentWardInfo = feature;
+            setLoading(false);
+            document.getElementById('result').innerHTML = createInfoPanelHTML();
+            updateInfoPanel();
+            initializeMap(feature, userLocation);
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // REVISED: createInfoPanelHTML now has the button container outside the main panel
+        function createInfoPanelHTML() {
+             return `
+                <div>
+                    <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200 space-y-4 p-6">
+                        <div class="flex items-center space-x-4 pb-4 border-b border-gray-200">
+                            <div id="result-photo" class="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden border-2 border-white shadow-md"></div>
+                            <div>
+                               <h2 id="result-greeting" class="text-md text-gray-700"></h2>
+                               <p id="result-ward-name" class="text-indigo-600 font-bold text-2xl"></p>
+                            </div>
+                        </div>
+                        <div id="map" class="w-full rounded-lg shadow-md border border-gray-200"></div>
+                        <div class="grid grid-cols-3 gap-2 text-center pt-2">
+                            <div class="bg-green-100 text-green-800 p-2 rounded-lg">
+                                <div class="font-bold text-xs uppercase tracking-wider">Dân số</div>
+                                <div id="result-population" class="text-sm font-semibold mt-1"></div>
+                            </div>
+                            <div class="bg-yellow-100 text-yellow-800 p-2 rounded-lg">
+                                <div class="font-bold text-xs uppercase tracking-wider">Diện tích</div>
+                                <div id="result-area" class="text-sm font-semibold mt-1"></div>
+                            </div>
+                            <div class="bg-blue-100 text-blue-800 p-2 rounded-lg">
+                                <div class="font-bold text-xs uppercase tracking-wider">Mật độ</div>
+                                <div id="result-density" class="text-sm font-semibold mt-1"></div>
+                            </div>
+                        </div>
+                        <div class="text-sm pt-2">
+                            <table class="w-full">
+                                <tbody>
+                                    <tr class="border-t border-gray-200">
+                                        <td class="py-2 pr-2 align-top font-semibold text-blue-600" style="width: 80px;">Hàng xóm</td>
+                                        <td class="py-2 text-gray-700"><span id="result-neighbors"></span></td>
+                                    </tr>
+                                    <tr class="border-t border-gray-200">
+                                        <td class="py-2 pr-2 align-top font-semibold text-blue-600" style="width: 80px;">Sáp nhập</td>
+                                        <td class="py-2 text-gray-700"><span id="result-merged-wards"></span></td>
+                                    </tr>
+                                    <tr class="border-t border-gray-200">
+                                        <td class="py-2 pr-2 align-top font-semibold text-blue-600" style="width: 80px;">Trụ sở</td>
+                                        <td class="py-2 text-gray-700"><span id="result-address"></span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="result-directions-container" class="mt-4"></div>
+                </div>
+            `;
+        }
+        
+        function formatWardList(wardString) {
+            if (!wardString || wardString.trim() === '') return '';
+            const wards = wardString.split(',').map(w => w.trim()).filter(Boolean);
+            const groupedByDistrict = {};
+            wards.forEach(ward => {
+                const match = ward.match(/(.+?)\s*\((.+?)\)/);
+                if (match) {
+                    const name = match[1].trim();
+                    const district = `(${match[2].trim()})`;
+                    if (!groupedByDistrict[district]) { groupedByDistrict[district] = []; }
+                    groupedByDistrict[district].push(name);
+                } else {
+                    if (!groupedByDistrict['Khác']) { groupedByDistrict['Khác'] = []; }
+                    groupedByDistrict['Khác'].push(ward);
+                }
+            });
+            return Object.entries(groupedByDistrict).map(([district, names]) => {
+                if (district === 'Khác') { return names.join(', '); }
+                const prefix = names.every(n => n.startsWith('Phường ')) ? 'Phường' : (names.every(n => n.startsWith('Xã ')) ? 'Xã' : '');
+                if (prefix) {
+                    const numbers = names.map(n => n.replace(prefix, '').trim()).join(', ');
+                    return `${prefix} ${numbers} ${district}`;
+                } else {
+                    return `${names.join(', ')} ${district}`;
+                }
+            }).join('; ');
+        }
+        
+        function updateInfoPanel() {
+            if (!currentWardInfo) return;
+            const properties = currentWardInfo.properties;
+            const wardName = getWardName(properties);
+            const type = /xã/i.test(wardName) ? 'xã' : 'phường';
+            const photoHTML = userPhoto ? `<img src="${userPhoto}" alt="User Photo" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center bg-gray-200"><i class="fa-solid fa-user text-gray-400 text-2xl"></i></div>`;
+            const directionsURL = properties['Latitude 1'] && properties['Longitude 1'] ? `https://www.google.com/maps/search/?api=1&query=${properties['Latitude 1']},${properties['Longitude 1']}` : '#';
+            const hasDirections = properties['Latitude 1'] && properties['Longitude 1'];
+            const displayName = userName || 'Bạn';
+
+            const mergedAllText = formatWardList(properties['Sáp nhập toàn bộ từ']);
+            const mergedPartialText = formatWardList(properties['Sáp nhập một phần từ']);
+            let mergedWardsText = '';
+            if (mergedAllText) { mergedWardsText += `toàn bộ ${mergedAllText}`; }
+            if (mergedPartialText) {
+                if (mergedWardsText) { mergedWardsText += '; và một phần '; } else { mergedWardsText += 'một phần '; }
+                mergedWardsText += mergedPartialText;
+            }
+            if (!mergedWardsText) { mergedWardsText = 'Không'; }
+
+            document.getElementById('result-photo').innerHTML = photoHTML;
+            document.getElementById('result-greeting').innerHTML = `${displayName} ơi, bạn là cư dân`;
+            document.getElementById('result-ward-name').textContent = `${type} ${wardName}`;
+            document.getElementById('result-address').textContent = properties['Full Address 1'] || 'Chưa có thông tin.';
+            document.getElementById('result-merged-wards').textContent = mergedWardsText;
+            document.getElementById('result-neighbors').textContent = properties['Giáp ranh'] || 'Không';
+            
+            const popRank = getWardRank(wardName, rankedPopulation);
+            const popValue = properties['Dân số (người)'] ? properties['Dân số (người)'].toLocaleString() : 'N/A';
+            const popRankText = popRank !== 'N/A' ? `</br> (Hạng ${popRank})` : '';
+            document.getElementById('result-population').innerHTML = `<span class="font-bold text-lg">${popValue}</span><span class="text-xs">${popRankText}</span>`;
+
+            const areaRank = getWardRank(wardName, rankedArea);
+            const areaValue = properties['Diện tích (km2)'] ? `${properties['Diện tích (km2)'].toFixed(2)} km²` : 'N/A';
+            const areaRankText = areaRank !== 'N/A' ? `</br> (Hạng ${areaRank})` : '';
+            document.getElementById('result-area').innerHTML = `<span class="font-bold text-lg">${areaValue}</span><span class="text-xs">${areaRankText}</span>`;
+
+            const densityRank = getWardRank(wardName, rankedDensity);
+            const densityValue = properties['Mật độ (người/km2)'] ? `${properties['Mật độ (người/km2)'].toLocaleString()}` : 'N/A';
+            const densityRankText = densityRank !== 'N/A' ? `</br> (Hạng ${densityRank})` : '';
+            document.getElementById('result-density').innerHTML = `<span class="font-bold text-lg">${densityValue}</span><span class="text-xs"> ng/km²${densityRankText}</span>`;
+            
+            const directionsContainer = document.getElementById('result-directions-container');
+            if (hasDirections) {
+                directionsContainer.innerHTML = `<a href="${directionsURL}" target="_blank" class="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300"><i class="fa-solid fa-map-location-dot mr-2"></i>Chỉ đường đến trụ sở</a>`;
+            } else {
+                directionsContainer.innerHTML = '';
+            }
+        }
+        
+        // --- Map Initialization ---
+        function initializeMap(selectedFeature, userLocation = null) {
+            if (map) { map.remove(); map = null; }
+            map = L.map('map', { attributionControl: false });
+            L.tileLayer('https://mt.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+            
+            const selectedId = selectedFeature.properties.STT;
+
+            const allWardsLayer = L.geoJSON(wardData, {
+                style: { color: '#ffffff', weight: 1.5, opacity: 0.7, fillOpacity: 0 },
+                onEachFeature: (feature, layer) => {
+                    if (feature.properties.STT !== selectedId) {
+                        const props = feature.properties;
+                        const name = props['Tên'] || 'Không rõ';
+                        const type = /xã/i.test(name) ? 'Xã' : 'Phường';
+                        layer.bindPopup(`${type} ${name}`, {
+                            closeButton: false, className: 'map-popup', offset: [0, -5], autoPan: false
+                        });
+                        layer.on('mouseover', function (e) { this.openPopup(); });
+                        layer.on('mouseout', function (e) { this.closePopup(); });
+                    }
+                }
+            }).addTo(map);
+
+            const highlightStyle = { color: '#fde047', weight: 4, opacity: 0.9, fillColor: '#fde047', fillOpacity: 0.2 };
+            const highlightLayer = L.geoJSON(selectedFeature, { style: highlightStyle }).addTo(map);
+
+            map.fitBounds(highlightLayer.getBounds());
+
+            if(userLocation) {
+                L.circleMarker(userLocation, { radius: 8, fillColor: "#ff4757", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.9 }).addTo(map);
+            }
+        }
+        
+        // --- ACTION HANDLERS ---
+        async function handleLocationSearch() {
+            if (!dataLoaded) await loadWardData();
+            if (!navigator.geolocation) { showError('Trình duyệt không hỗ trợ Geolocation.'); return; }
+            setLoading(true, 'Đang lấy vị trí của bạn...');
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const userPoint = [lng, lat];
+                    let found = false;
+                    for (const feature of wardData.features) {
+                        const geometry = feature.geometry;
+                        if (geometry.type === 'Polygon' && pointInPolygon(userPoint, geometry.coordinates[0])) {
+                            showResult(feature, [lat, lng]); found = true; break;
+                        }
+                        if (geometry.type === 'MultiPolygon') {
+                            for (const polygon of geometry.coordinates) { if (pointInPolygon(userPoint, polygon[0])) { showResult(feature, [lat, lng]); found = true; break; } }
+                        }
+                        if (found) break;
+                    }
+                    if (!found) { showError('⚠️ Vị trí của bạn không thuộc TP.HCM hoặc nằm ngoài ranh giới dữ liệu.'); }
+                },
+                error => {
+                    let message = 'Lỗi không xác định';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED: message = 'Quyền truy cập vị trí bị từ chối.'; break;
+                        case error.POSITION_UNAVAILABLE: message = 'Thông tin vị trí không khả dụng.'; break;
+                        case error.TIMEOUT: message = 'Yêu cầu vị trí quá thời gian.'; break;
+                    }
+                    showError(`❌ ${message}`);
+                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        async function handleNameSearch() {
+            if (!dataLoaded) await loadWardData();
+            const query = document.getElementById('wardSearchInput').value;
+            if (query.trim().length < 2) { showError("Vui lòng nhập ít nhất 2 ký tự để tìm kiếm."); return; }
+            setLoading(true, `Đang tìm kiếm "${query}"...`);
+            const normalizedQuery = normalizeString(query);
+            const matches = wardData.features.filter(f => {
+                const name = normalizeString(f.properties['Tên']);
+                const mergedFrom = normalizeString(f.properties['Sáp nhập toàn bộ từ']);
+                const mergedPartial = normalizeString(f.properties['Sáp nhập một phần từ']);
+                return name.includes(normalizedQuery) || mergedFrom.includes(normalizedQuery) || mergedPartial.includes(normalizedQuery);
+            });
+            setLoading(false);
+            if (matches.length === 0) {
+                showError(`Không tìm thấy phường/xã nào có tên chứa "${query}".`);
+            } else if (matches.length === 1) {
+                showResult(matches[0]);
+            } else {
+                showSearchResultsList(matches, query);
+            }
+        }
+
+        function showSearchResultsList(matches, query) {
+            let listHTML = `<div class="bg-white/70 p-6 rounded-2xl shadow-lg border border-gray-200"><h3 class="font-bold text-center mb-4">Tìm thấy ${matches.length} kết quả cho "${query}":</h3><ul class="space-y-2">`;
+            matches.forEach(feature => {
+                const name = feature.properties['Tên'];
+                const stt = feature.properties['STT'];
+                listHTML += `<li><button onclick='handleSearchResultClick(${stt})' class="w-full text-left p-3 bg-gray-100 hover:bg-indigo-100 rounded-lg transition duration-200">${name}</button></li>`;
+            });
+            listHTML += `</ul></div>`;
+            document.getElementById('result').innerHTML = listHTML;
+        }
+
+        function handleSearchResultClick(stt) {
+            const feature = wardData.features.find(f => f.properties['STT'] === stt);
+            if (feature) showResult(feature);
+        }
+        
         function pointInPolygon([x, y], polygon) {
             let inside = false;
             for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -205,284 +439,49 @@
             return inside;
         }
 
-        async function findWardByLocation(lat, lng) {
-            if (!dataLoaded) await loadWardData();
-            if (!wardData) {
-                showResult('❌ Dữ liệu chưa sẵn sàng.', true);
-                return;
-            }
-
-            const userPoint = [lng, lat];
-            for (const feature of wardData.features) {
-                const geometry = feature.geometry;
-                if (geometry.type === 'Polygon' && pointInPolygon(userPoint, geometry.coordinates[0])) {
-                    showResult('', false, feature);
-                    return;
-                }
-                if (geometry.type === 'MultiPolygon') {
-                    for (const polygon of geometry.coordinates) {
-                        if (pointInPolygon(userPoint, polygon[0])) {
-                            showResult('', false, feature);
-                            return;
-                        }
-                    }
-                }
-            }
-            showResult('⚠️ Vị trí của bạn không thuộc TP.HCM hoặc nằm ngoài ranh giới dữ liệu.', true);
-        }
-
-        // --- UI & RESULT RENDERING ---
-        function getWardName(properties) {
-            const potentialKeys = ['Tên', 'name', 'ward_name', 'full_name', 'ten_phuong', 'label', 'title'];
-            for (const key of potentialKeys) {
-                if (properties[key]) return properties[key];
-            }
-            return Object.values(properties)[0] || 'Phường Xã Không Xác Định';
-        }
-
-        function getWardRank(wardName, type, rankingsArray) {
-            const found = rankingsArray.find(item => getWardName(item) === wardName);
-            return found ? found.rank : 'N/A';
-        }
-
-        function showResult(message = '', isError = false, feature = null) {
-            const resultDiv = document.getElementById('result');
-            document.getElementById('loading').style.display = 'none';
-
-            // GA tracking for result display
-            if (typeof gtag === 'function') {
-                gtag('event', 'result_display', {
-                    event_category: 'ui',
-                    result_type: isError ? 'error' : (feature ? 'success' : 'info'),
-                    ward_name: feature ? getWardName(feature.properties) : '(none)',
-                    message: message || ''
-                });
-            }
-
-            if (isError || !feature) {
-                resultDiv.innerHTML = `<div class="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">${message}</div>`;
-            } else {
-                currentWardInfo = feature;
-                resultDiv.innerHTML = createWardCardHTML(feature, userName, userPhoto); // Pass feature here
-                // renderCardQR(feature.properties); // QRious removed, no longer needed
-            }
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function createWardCardHTML(feature, name, photoSrc) { // Changed properties to feature
-            const properties = feature.properties; // Get properties from feature
-            // Wrap user name if longer than 25 chars
-            let dispName = name || 'Người giấu tên';
-            if (dispName.length > 25) {
-              const idx = dispName.lastIndexOf(' ', 25);
-              const split = idx > 0 ? idx : 25;
-              dispName = dispName.slice(0, split) + '<br>' + dispName.slice(split);
-            }
-            const wardName = getWardName(properties);
-            const type = /xã/i.test(wardName) ? 'xã' : 'phường';
-            const photoHTML = photoSrc
-                ? `<img src="${photoSrc}" alt="Citizen Photo" class="w-full h-full object-cover">`
-                : `<div class="w-full h-full flex items-center justify-center bg-gray-600 text-gray-400 text-xs">No Photo</div>`;
-
-            const popRank = getWardRank(wardName, type, rankedPopulation);
-            const areaRank = getWardRank(wardName, type, rankedArea);
-            const densityRank = getWardRank(wardName, type, rankedDensity);
-
-            const mergedFromAll = properties['Sáp nhập toàn bộ từ'] || 'Không';
-            const mergedFromPartial = properties['Sáp nhập một phần từ'] || 'Không';
-            const neighbors = properties['Giáp ranh'] ? properties['Giáp ranh'].split(',').map(n => n.trim()).join(', ') : 'Không';
-
-            return `
-                <div class="w-full max-w-sm mx-auto bg-gradient-to-br from-gray-900 to-black p-1 rounded-3xl shadow-2xl">
-                    <div class="relative card-pattern w-full aspect-[0.63] bg-gradient-to-br from-[#2a2a4e] to-[#4a4a7e] rounded-2xl p-6 flex flex-col justify-between text-white shadow-inner shadow-white/5" id="idCard">
-                        
-                        <!-- Main Content: Photo and Info -->
-                        <div class="relative z-10 text-center">
-                             <div class="w-48 h-48 rounded-full bg-gray-700 overflow-hidden shadow-lg border-4 border-white/30 mb-10 mx-auto">
-                                ${photoHTML}
-                            </div>
-                            <div class="flex flex-col items-center space-y-2">
-                              <p class="font-extrabold text-white text-3xl break-all whitespace-normal text-center">${dispName}</p>
-                              <p class="font-regular text-indigo-150 text-md mt-2">Cư dân ${type} <b>${wardName}</b>,</br> siêu đô thị TP HCM</p>
-                            </div>
-
-                            <!-- New Section: Ward Information Ribbons (Compact Single Line) -->
-                            <div class="flex flex-nowrap justify-center gap-2 mt-4 text-xs font-semibold">
-                              <div class="bg-green-700/70 backdrop-blur-sm px-2 py-1 rounded-md flex items-center shadow-sm border border-green-500/80">
-                                Dân số: <span class="ml-1 font-bold text-sm">#${popRank}</span>
-                              </div>
-                              <div class="bg-yellow-700/70 backdrop-blur-sm px-2 py-1 rounded-md flex items-center shadow-sm border border-yellow-500/80">
-                                Diện tích: <span class="ml-1 font-bold text-sm">#${areaRank}</span>
-                              </div>
-                              <div class="bg-blue-700/70 backdrop-blur-sm px-2 py-1 rounded-md flex items-center shadow-sm border border-blue-500/80">
-                                Mật độ: <span class="ml-1 font-bold text-sm">#${densityRank}</span>
-                              </div>
-                            </div>
-                        </div>
-
-                        <!-- Bottom: QR + URL -->
-                        <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2">
-                          <div class="qr-code-placeholder">
-                            <img src="https://raw.githubusercontent.com/lqtue/phuongnao/main/download.png" alt="QR code" class="w-full h-full object-cover">
-                          </div>
-                          <p class="text-xs sm:text-sm text-indigo-200 font-medium break-words text-center">
-                              lqtue.github.io/phuongnao
-                          </p>
-                        </div>
-
-                    </div><!-- /.card-pattern -->
-                </div>
-                <button onclick="downloadCard()" class="mt-6 w-full bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform hover:scale-105 transition duration-300">
-                    Tải Thẻ Về Máy
-                </button>
-
-                <!-- New Section: Ward Information -->
-                <div class="mt-8 p-6 bg-gray-800/50 rounded-2xl shadow-lg border border-gray-700 space-y-4">
-                    <h2 class="text-xl font-bold text-white text-center mb-4">Thông tin ${type} ${wardName}</h2>
-
-                    <div class="space-y-2">
-                        <p class="text-gray-300"><strong class="text-indigo-300">Dân số:</strong> ${properties['Dân số (người)'] ? properties['Dân số (người)'].toLocaleString() : 'N/A'} người <span class="text-xs text-gray-400">(Hạng ${popRank} TP.HCM)</span></p>
-                        <p class="text-gray-300"><strong class="text-indigo-300">Diện tích:</strong> ${properties['Diện tích (km2)'] ? properties['Diện tích (km2)'].toFixed(2) : 'N/A'} km² <span class="text-xs text-gray-400">(Hạng ${areaRank} TP.HCM)</span></p>
-                        <p class="text-gray-300"><strong class="text-indigo-300">Mật độ:</strong> ${properties['Mật độ (người/km2)'] ? properties['Mật độ (người/km2)'].toLocaleString() : 'N/A'} người/km² <span class="text-xs text-gray-400">(Hạng ${densityRank} TP.HCM)</span></p>
-                    </div>
-
-                    <div class="border-t border-gray-700 pt-4 mt-4 space-y-2">
-                        <p class="text-gray-300"><strong class="text-green-300">Sáp nhập toàn bộ từ:</strong> ${mergedFromAll}</p>
-                        <p class="text-gray-300"><strong class="text-yellow-300">Sáp nhập một phần từ:</strong> ${mergedFromPartial}</p>
-                        <p class="text-gray-300"><strong class="text-blue-300">Giáp ranh:</strong> ${neighbors}</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // QRious renderCardQR removed (no longer needed)
-
-        /* ---------- DOWNLOAD CARD AS PNG ---------- */
-        async function downloadCard(){
-            const node = document.getElementById('idCard');
-            // Check if the card element exists and is visible before trying to download
-            if (!node || node.offsetParent === null) { // offsetParent is null if element or its parent is hidden
-                // Replaced alert with a custom message for better UX in an iframe environment
-                showResult('Hãy tạo thẻ trước đã!', true);
-                return;
-            }
-            try{
-                // Wait until all web‑fonts are loaded
-                await document.fonts.ready;
-                // Wait for all images inside the card to load
-                const imgs = node.querySelectorAll('img');
-                await Promise.all(Array.from(imgs).map(img =>
-                    img.complete ? Promise.resolve() :
-                    new Promise(resolve => { img.onload = img.onerror = resolve; })
-                ));
-                const dataUrl = await htmlToImage.toPng(node, { pixelRatio: 3, cacheBust: true });
-                const link = document.createElement('a');
-                link.download = `thecudan-${(userName||'user').replace(/\s+/g,'-')}.png`;
-                link.href = dataUrl;
-                link.click();
-            }catch(err){
-                console.error('Failed to export image', err);
-                // Replaced alert with a custom message
-                showResult('Không thể tải ảnh, hãy thử lại.', true);
-            }
-        }
-
-        // --- Core Geolocation and Card Generation Logic ---
-        function generateCard() {
-            // userName is already updated by the input event listener.
-            // Removed the check for empty userName, allowing it to be optional.
-
-            if (!navigator.geolocation) {
-                showResult('❌ Trình duyệt không hỗ trợ Geolocation.', true);
-                return;
-            }
-
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').innerHTML = ''; // Clear previous results
-
-            navigator.geolocation.getCurrentPosition(
-                position => findWardByLocation(position.coords.latitude, position.coords.longitude),
-                error => {
-                    let message = 'Lỗi không xác định';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            message = 'Quyền truy cập vị trí bị từ chối.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            message = 'Thông tin vị trí không khả dụng.';
-                            break;
-                        case error.TIMEOUT:
-                            message = 'Yêu cầu vị trí quá thời gian.';
-                            break;
-                    }
-                    showResult(`❌ ${message}`, true);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        }
-
         // --- EVENT LISTENERS ---
-document.getElementById('userPhoto').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = event => {
-        const img = new Image();
-        img.onload = () => {
-            const maxDim = 400;
-            let { width, height } = img;
-            // Calculate resized dimensions
-            if (width > maxDim || height > maxDim) {
-                const ratio = Math.min(maxDim / width, maxDim / height);
-                width = width * ratio;
-                height = height * ratio;
-            }
-            // Draw to canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            // Compress to JPEG
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            // Store and preview
-            userPhoto = compressedDataUrl;
-            const preview = document.getElementById('photoPreview');
-            preview.innerHTML = `<img src="${compressedDataUrl}" alt="Preview" class="w-full h-full object-cover">`;
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-});
-
+        document.getElementById('searchBtn').addEventListener('click', handleNameSearch);
+        document.getElementById('wardSearchInput').addEventListener('keyup', (event) => { if (event.key === 'Enter') handleNameSearch(); });
+        document.getElementById('locationBtn').addEventListener('click', handleLocationSearch);
+        
         document.getElementById('userName').addEventListener('input', e => {
             userName = e.target.value.trim();
+            if (currentWardInfo) {
+                const displayName = userName || 'Bạn';
+                document.getElementById('result-greeting').innerHTML = `${displayName} ơi, bạn là cư dân`;
+            }
         });
 
-        // Get references to modal elements
-        const dataPrivacyModal = document.getElementById('dataPrivacyModal');
-        const cancelPrivacyModal = document.getElementById('cancelPrivacyModal');
-        const confirmPrivacyModal = document.getElementById('confirmPrivacyModal');
-
-        // Show the privacy modal when the main button is clicked
-        document.getElementById('locationBtn').addEventListener('click', () => {
-            dataPrivacyModal.classList.remove('hidden');
+        document.getElementById('userPhoto').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = event => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxDim = 400; let { width, height } = img;
+                    if (width > maxDim || height > maxDim) { const ratio = Math.min(maxDim / width, maxDim / height); width = width * ratio; height = height * ratio; }
+                    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                    userPhoto = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('photoPreview').innerHTML = `<img src="${userPhoto}" alt="Preview" class="w-full h-full object-cover">`;
+                    if (currentWardInfo) {
+                        document.getElementById('result-photo').innerHTML = `<img src="${userPhoto}" alt="User Photo" class="w-full h-full object-cover">`;
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
 
-        // Hide the modal if the user cancels
-        cancelPrivacyModal.addEventListener('click', () => {
-            dataPrivacyModal.classList.add('hidden');
-        });
-
-        // If the user confirms, hide the modal and proceed with card generation
-        confirmPrivacyModal.addEventListener('click', () => {
-            dataPrivacyModal.classList.add('hidden');
-            generateCard(); // Call the function that handles geolocation and card creation
-        });
-        
-        // Preload the data on page load for faster response times
+        // --- Init ---
         loadWardData();
     </script>
 </body>
+
+<!-- Credits & Contact -->
+<div class="mt-8 text-center text-gray-400 text-xs space-y-1">
+  <p>Nguồn dữ liệu: Thông tin công khai trên báo chí</p>
+  <p><a href="https://github.com/lqtue" class="underline hover:text-gray-200">Github</a> | <a href="https://forms.gle/QvFAvevgM8TvWTBr9" class="underline hover:text-gray-200">Tải dữ liệu & Liên hệ</a></p>
+</div>
 </html>
