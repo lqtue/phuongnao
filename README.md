@@ -53,6 +53,5 @@
 
 Đây là một dự án cá nhân được tạo ra chỉ nhằm mục đích cung cấp thông tin. Dữ liệu được dựa trên thông tin công khai và có thể không chính xác hoặc cập nhật 100%. Ứng dụng không thu thập hoặc lưu trữ bất kỳ dữ liệu cá nhân nào của người dùng.
 
-## Ủng hộ người phát triển
-
-Mời mình một ly cafe ☕: <img src="https://raw.githubusercontent.com/lqtue/phuongnao/main/qr-code.jpg" alt="Mã QR ủng hộ" class="mx-auto w-52 h-52 rounded-lg border-2 border-gray-200" onerror="this.alt='Không tìm thấy ảnh QR'; this.src='https://placehold.co/208x208/e0e0e0/757575?text=QR+Code';">
+## Mời mình một ly cafe ☕
+<img src="https://raw.githubusercontent.com/lqtue/phuongnao/main/qr-code.jpg" alt="Mã QR ủng hộ" class="mx-auto w-52 h-52 rounded-lg border-2 border-gray-200" onerror="this.alt='Không tìm thấy ảnh QR'; this.src='https://placehold.co/208x208/e0e0e0/757575?text=QR+Code';">
