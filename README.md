@@ -1,5 +1,3 @@
-Chắc chắn rồi. Dưới đây là README cho dự án của bạn bằng tiếng Việt.
-
 # Tra cứu Phường/Xã tại TP.HCM Sau Sáp Nhập
 
 Đây là một ứng dụng web đơn giản, một trang duy nhất giúp người dân tại Thành phố Hồ Chí Minh tìm kiếm thông tin về phường hoặc xã mới của mình sau đợt điều chỉnh địa giới hành chính toàn thành phố. Người dùng có thể tìm kiếm bằng tên phường/xã cũ hoặc mới, hoặc sử dụng vị trí GPS hiện tại để xác định đơn vị hành chính mới của mình.
