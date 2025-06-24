@@ -104,8 +104,8 @@
                 
                 // Chuyển đổi TopoJSON thành GeoJSON
                 // Giả định tên object trong file là 'newWardData'
-                if (topojsonData.objects && topojsonData.objects.newWardData) {
-                    wardData = topojson.feature(topojsonData, topojsonData.objects.newWardData);
+                if (topojsonData.objects && topojsonData.objects.name) {
+                    wardData = topojson.feature(topojsonData, topojsonData.objects.name);
                     // Gán một ID duy nhất cho mỗi feature để xử lý click
                     wardData.features.forEach((feature, index) => {
                         feature.properties.unique_id = index;
