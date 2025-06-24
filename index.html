@@ -9,8 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="https://unpkg.com/topojson-client@3"></script>
-
+    
     <style>
         body { font-family: 'Inter', 'Noto Sans', 'Roboto', ui-sans-serif, system-ui, sans-serif; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -84,7 +83,7 @@
 
     <script>
         // --- TRẠNG THÁI TOÀN CỤC ---
-        let wardData = null; // Sẽ lưu trữ dữ liệu GeoJSON đã chuyển đổi
+        let wardData = null; // Sẽ lưu trữ dữ liệu GeoJSON
         let dataLoaded = false;
         let map = null;
 
@@ -92,29 +91,34 @@
         async function loadWardData() {
             try {
                 setLoading(true, 'Đang tải dữ liệu bản đồ...');
-                // URL trỏ đến file TopoJSON thô trên Github
-                const topoJsonPath = 'https://raw.githubusercontent.com/lqtue/phuongnao/main/Data/newWardData';
-                const response = await fetch(topoJsonPath);
+                const geoJsonPath = 'https://raw.githubusercontent.com/lqtue/phuongnao/main/Data/newWardData';
+                const response = await fetch(geoJsonPath);
                 
                 if (!response.ok) {
-                    throw new Error(`Lỗi tải dữ liệu TopoJSON! (status: ${response.status})`);
+                    throw new Error(`Lỗi tải dữ liệu GeoJSON! (status: ${response.status})`);
                 }
                 
-                const topojsonData = await response.json();
+                const geojsonData = await response.json();
                 
-                // Chuyển đổi TopoJSON thành GeoJSON
-                // Giả định tên object trong file là 'newWardData'
-                if (topojsonData.objects && topojsonData.objects.name) {
-                    wardData = topojson.feature(topojsonData, topojsonData.objects.name);
-                    // Gán một ID duy nhất cho mỗi feature để xử lý click
-                    wardData.features.forEach((feature, index) => {
-                        feature.properties.unique_id = index;
-                    });
-                    dataLoaded = true;
-                } else {
-                    throw new Error("Không tìm thấy object 'newWardData' trong file TopoJSON.");
+                // *** SỬA LỖI TẠI ĐÂY ***
+                // Gán trực tiếp dữ liệu GeoJSON, không cần chuyển đổi
+                wardData = geojsonData;
+                
+                // Kiểm tra xem có phải là GeoJSON hợp lệ không
+                if (!wardData || !wardData.features) {
+                    throw new Error("Dữ liệu không phải là định dạng GeoJSON FeatureCollection hợp lệ.");
                 }
 
+                // Gán một ID duy nhất cho mỗi feature để xử lý click
+                wardData.features.forEach((feature, index) => {
+                    // Đảm bảo mỗi feature có một object properties
+                    if (!feature.properties) {
+                        feature.properties = {};
+                    }
+                    feature.properties.unique_id = index;
+                });
+                
+                dataLoaded = true;
                 setLoading(false);
             } catch (e) {
                 setLoading(false);
@@ -163,180 +167,3 @@
                        <h2 class="text-md text-gray-700">Bạn ơi, bạn là cư dân của</h2>
                        <p class="text-indigo-600 font-bold text-3xl">${type} ${wardName}</p>
                     </div>
-                    <div id="map" class="w-full rounded-lg shadow-md border border-gray-200"></div>
-                </div>
-            `;
-        }
-        
-        // --- KHỞI TẠO BẢN ĐỒ ---
-        function initializeMap(selectedFeature, userLocation = null) {
-            if (map) { map.remove(); map = null; }
-            map = L.map('map', { attributionControl: false });
-            L.tileLayer('https://mt.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
-            
-            const selectedId = selectedFeature.properties.unique_id;
-
-            // Hiển thị tất cả các phường/xã khác
-            const allWardsLayer = L.geoJSON(wardData, {
-                style: { color: '#ffffff', weight: 1.5, opacity: 0.7, fillOpacity: 0 },
-                onEachFeature: (feature, layer) => {
-                    // Không áp dụng cho phường/xã đang được chọn
-                    if (feature.properties.unique_id !== selectedId) {
-                        const name = feature.properties.name || 'Không rõ';
-                        const type = /xã/i.test(name) ? 'Xã' : 'Phường';
-                        layer.bindPopup(`${type} ${name}`, {
-                            closeButton: false, className: 'map-popup', offset: [0, -5], autoPan: false
-                        });
-                        layer.on('mouseover', function (e) { this.openPopup(); });
-                        layer.on('mouseout', function (e) { this.closePopup(); });
-                    }
-                }
-            }).addTo(map);
-
-            // Tô sáng phường/xã được chọn
-            const highlightStyle = { color: '#fde047', weight: 4, opacity: 1, fillColor: '#fde047', fillOpacity: 0.3 };
-            const highlightLayer = L.geoJSON(selectedFeature, { style: highlightStyle }).addTo(map);
-
-            map.fitBounds(highlightLayer.getBounds());
-
-            // Đánh dấu vị trí người dùng nếu có
-            if(userLocation) {
-                L.circleMarker(userLocation, { radius: 8, fillColor: "#ff4757", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.9 }).addTo(map);
-            }
-        }
-        
-        // --- HÀM XỬ LÝ SỰ KIỆN ---
-        async function handleLocationSearch() {
-            if (!dataLoaded) await loadWardData();
-            if (!wardData) {
-                showError('Dữ liệu bản đồ chưa sẵn sàng, vui lòng thử lại.');
-                return;
-            }
-            if (!navigator.geolocation) { showError('Trình duyệt không hỗ trợ Geolocation.'); return; }
-            
-            setLoading(true, 'Đang lấy vị trí của bạn...');
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    const userPoint = [lng, lat];
-                    let found = false;
-                    
-                    // Sử dụng thư viện turf.js (hoặc hàm pointInPolygon) để kiểm tra
-                    // Leaflet không có sẵn hàm này, nên ta tự viết một hàm đơn giản
-                    for (const feature of wardData.features) {
-                        if (isPointInGeoJSON(userPoint, feature)) {
-                            showResult(feature, [lat, lng]);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        showError('⚠️ Vị trí của bạn không thuộc TP.HCM hoặc nằm ngoài ranh giới dữ liệu.');
-                    }
-                },
-                error => {
-                    let message = 'Lỗi không xác định';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED: message = 'Quyền truy cập vị trí bị từ chối.'; break;
-                        case error.POSITION_UNAVAILABLE: message = 'Thông tin vị trí không khả dụng.'; break;
-                        case error.TIMEOUT: message = 'Yêu cầu vị trí quá thời gian.'; break;
-                    }
-                    showError(`❌ ${message}`);
-                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        }
-
-        async function handleNameSearch() {
-            if (!dataLoaded) await loadWardData();
-            if (!wardData) {
-                showError('Dữ liệu bản đồ chưa sẵn sàng, vui lòng thử lại.');
-                return;
-            }
-
-            const query = document.getElementById('wardSearchInput').value;
-            if (query.trim().length < 2) {
-                showError("Vui lòng nhập ít nhất 2 ký tự để tìm kiếm.");
-                return;
-            }
-            setLoading(true, `Đang tìm kiếm "${query}"...`);
-            
-            const normalizedQuery = normalizeString(query);
-            const matches = wardData.features.filter(f => {
-                const name = normalizeString(f.properties.name);
-                return name.includes(normalizedQuery);
-            });
-
-            setLoading(false);
-            if (matches.length === 0) {
-                showError(`Không tìm thấy phường/xã nào có tên chứa "${query}".`);
-            } else if (matches.length === 1) {
-                showResult(matches[0]);
-            } else {
-                showSearchResultsList(matches, query);
-            }
-        }
-
-        function showSearchResultsList(matches, query) {
-            let listHTML = `<div class="bg-white/70 p-6 rounded-2xl shadow-lg border border-gray-200"><h3 class="font-bold text-center mb-4">Tìm thấy ${matches.length} kết quả cho "${query}":</h3><ul class="space-y-2">`;
-            matches.forEach(feature => {
-                const name = feature.properties.name;
-                const id = feature.properties.unique_id;
-                listHTML += `<li><button onclick='handleSearchResultClick(${id})' class="w-full text-left p-3 bg-gray-100 hover:bg-indigo-100 rounded-lg transition duration-200">${name}</button></li>`;
-            });
-            listHTML += `</ul></div>`;
-            document.getElementById('result').innerHTML = listHTML;
-        }
-
-        function handleSearchResultClick(id) {
-            const feature = wardData.features.find(f => f.properties.unique_id === id);
-            if (feature) showResult(feature);
-        }
-        
-        // --- HÀM TIỆN ÍCH ---
-        function pointInPolygon([x, y], polygon) {
-            let inside = false;
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-                const [xi, yi] = polygon[i];
-                const [xj, yj] = polygon[j];
-                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                if (intersect) inside = !inside;
-            }
-            return inside;
-        }
-        
-        function isPointInGeoJSON(point, geojsonFeature) {
-            const geom = geojsonFeature.geometry;
-            if (geom.type === 'Polygon') {
-                return pointInPolygon(point, geom.coordinates[0]);
-            } else if (geom.type === 'MultiPolygon') {
-                for (const polygon of geom.coordinates) {
-                    if (pointInPolygon(point, polygon[0])) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        // --- LẮNG NGHE SỰ KIỆN ---
-        document.getElementById('searchBtn').addEventListener('click', handleNameSearch);
-        document.getElementById('wardSearchInput').addEventListener('keyup', (event) => { if (event.key === 'Enter') handleNameSearch(); });
-        document.getElementById('locationBtn').addEventListener('click', handleLocationSearch);
-        
-        // --- LOGIC CHO MODAL ỦNG HỘ ---
-        const donateBtn = document.getElementById('donateBtn');
-        const donateModal = document.getElementById('donateModal');
-        const closeDonateModalBtn = document.getElementById('closeDonateModal');
-
-        donateBtn.addEventListener('click', () => { donateModal.style.display = 'flex'; });
-        closeDonateModalBtn.addEventListener('click', () => { donateModal.style.display = 'none'; });
-        donateModal.addEventListener('click', (event) => {
-            if (event.target === donateModal) { donateModal.style.display = 'none'; }
-        });
-
-        // --- KHỞI ĐỘNG ---
-        loadWardData();
-    </script>
-</body>
-</html>
