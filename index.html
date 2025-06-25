@@ -39,6 +39,21 @@
 
         <div class="bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 flex-shrink-0">
             <div class="space-y-6">
+                <div>
+                    <label for="wardSearchInput" class="block mb-2 text-sm font-medium text-gray-600">Tìm theo địa chỉ hoặc địa danh</label>
+                    <div class="relative">
+                        <div class="flex space-x-2">
+                            <input type="text" id="wardSearchInput" placeholder="VD: Dinh Độc Lập; 227 Nguyễn Văn Cừ" class="w-full bg-gray-50 border-2 border-gray-300 rounded-lg p-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300 outline-none">
+                            <button id="searchBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-lg shadow-lg transition duration-300"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                        <div id="searchResults" class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto" style="display: none;"></div>
+                    </div>
+                </div>
+                <div class="relative flex items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-400 text-sm">hoặc</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
                 <button id="locationBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg transform hover:scale-105 transition duration-300"><i class="fa-solid fa-location-crosshairs mr-2"></i> Dùng vị trí hiện tại của tôi</button>
             </div>
         </div>
@@ -99,6 +114,8 @@
 
         // --- DOM REFERENCES (Cache for performance) ---
         const wardSearchInput = document.getElementById('wardSearchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResultsDiv = document.getElementById('searchResults');
         const resultDiv = document.getElementById('result');
         const loadingDiv = document.getElementById('loading');
         const donateModal = document.getElementById('donateModal');
@@ -350,43 +367,6 @@
             );
         }
 
-        async function handleNameSearch() {
-            await loadWardData(); // Ensure data is loaded
-            if (!isDataLoaded) return;
-            const query = wardSearchInput.value;
-            if (query.trim().length === 0) { showError("Vui lòng nhập tên phường/xã hoặc quận/huyện."); return; }
-            setLoading(true, `Đang tìm "${query}"...`);
-
-            setTimeout(() => { // Use timeout to allow loading spinner to render
-                const normalizedQuery = normalizeString(query);
-                const matches = wardData.features.filter(f => {
-                    const nameField = f.properties.name || '';
-                    const name = normalizeString(nameField);
-                    return isAccurateMatch(normalizedQuery, name);
-                });
-                setLoading(false);
-                if (matches.length === 0) showError(`Không tìm thấy phường/xã nào có tên chứa "${query}".`);
-                else if (matches.length === 1) showResult(matches[0]);
-                else showSearchResultsList(matches, query);
-            }, 50);
-        }
-
-        function showSearchResultsList(matches, query) {
-            let listHTML = `<div class="bg-white/70 p-6 rounded-2xl shadow-lg border border-gray-200"><h3 class="font-bold text-center mb-4">Tìm thấy ${matches.length} kết quả cho "${query}":</h3><ul class="space-y-2">`;
-            matches.forEach(feature => {
-                const name = getWardName(feature.properties);
-                const stt = f.properties.STT; // Assuming STT is a unique identifier
-                listHTML += `<li><button onclick='handleSearchResultClick(${JSON.stringify(stt)})' class="w-full text-left p-3 bg-gray-100 hover:bg-indigo-100 rounded-lg transition duration-200 text-indigo-700 font-semibold">${name}</button></li>`;
-            });
-            listHTML += `</ul></div>`;
-            document.getElementById('result').innerHTML = listHTML;
-        }
-
-        function handleSearchResultClick(stt) {
-            const feature = wardData.features.find(f => f.properties.STT === stt);
-            if (feature) showResult(feature);
-        } // This function is called from dynamically generated HTML, so it needs to be global.
-
         function pointInPolygon([x, y], polygon) {
             let inside = false;
             for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -404,7 +384,94 @@
             return false;
         }
 
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        async function handleNominatimSearch() {
+            await loadWardData();
+            if (!isDataLoaded) return;
+
+            const query = wardSearchInput.value.trim();
+            if (query.length < 3) {
+                searchResultsDiv.style.display = 'none';
+                return;
+            }
+
+            setLoading(true, `Đang tìm địa chỉ "${query}"...`);
+
+            try {
+                // Biased search towards Vietnam
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=5`);
+                if (!response.ok) throw new Error(`Lỗi API Nominatim: ${response.status}`);
+                const results = await response.json();
+                displayNominatimResults(results);
+            } catch (error) {
+                console.error("Lỗi tìm kiếm Nominatim:", error);
+                showError(`Không thể tìm kiếm địa chỉ: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function displayNominatimResults(results) {
+            searchResultsDiv.innerHTML = '';
+            if (results.length === 0) {
+                searchResultsDiv.innerHTML = `<div class="p-3 text-sm text-gray-500">Không tìm thấy kết quả.</div>`;
+                searchResultsDiv.style.display = 'block';
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            results.forEach(result => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                li.textContent = result.display_name;
+                li.onclick = () => selectNominatimResult(result);
+                ul.appendChild(li);
+            });
+            searchResultsDiv.appendChild(ul);
+            searchResultsDiv.style.display = 'block';
+        }
+
+        function selectNominatimResult(result) {
+            searchResultsDiv.style.display = 'none';
+            wardSearchInput.value = result.display_name;
+            
+            const lat = parseFloat(result.lat);
+            const lon = parseFloat(result.lon);
+
+            if (isNaN(lat) || isNaN(lon)) {
+                showError("Kết quả tìm kiếm không có toạ độ hợp lệ.");
+                return;
+            }
+
+            const foundFeature = wardData.features.find(f => isPointInGeoJSON([lon, lat], f));
+            if (foundFeature) {
+                showResult(foundFeature, [lat, lon]);
+            } else {
+                showError('Địa chỉ được chọn nằm ngoài ranh giới dữ liệu các phường/xã đã được cập nhật.');
+            }
+        }
+
         // --- EVENT LISTENERS ---
+        searchBtn.addEventListener('click', handleNominatimSearch);
+        wardSearchInput.addEventListener('keyup', debounce(handleNominatimSearch, 500));
+        // Hide search results when clicking outside
+        document.addEventListener('click', function(event) {
+            const searchContainer = document.getElementById('wardSearchInput').closest('.relative');
+            if (searchContainer && !searchContainer.contains(event.target)) {
+                searchResultsDiv.style.display = 'none';
+            }
+        });
         document.getElementById('locationBtn').addEventListener('click', handleLocationSearch);
         document.getElementById('userName').addEventListener('input', e => {
             userName = e.target.value.trim();
